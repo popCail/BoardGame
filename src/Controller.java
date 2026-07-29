@@ -80,7 +80,6 @@ public class Controller {
      */
     public static void withdraw() {
         BoardStatus.getInstance().withdraw();
-        int r = BoardStatus.getInstance().nextChess;
         whoPlayInfoUpdate();
         //视图更新
         BoardFrame.boardFrame.clearBoard();
@@ -140,6 +139,7 @@ public class Controller {
     public static void netStart() {
         if (connect == null) {
             Controller.writeTextArea("Not Create Home or Join Home");
+            return;
         }
         JSONObject jsonObject = new JSONObject();
         // type 1表示开始新游戏
@@ -158,12 +158,9 @@ public class Controller {
      * 用于联网模式，创建房间，等待别人的加入
      */
     public static void createHome() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                connect = new Connect();
-                connect.createHome();
-            }
+        new Thread(() -> {
+            connect = new Connect();
+            connect.createHome();
         }).start();
     }
 
@@ -174,25 +171,21 @@ public class Controller {
     public static void joinHome() {
         connect = new Connect();
         String res = JOptionPane.showInputDialog("input home ip like 192.168.1.1:7777");
-
-        if (res.indexOf(":") == -1) {
-            Controller.writeTextArea("IP and port not match");
+        String[] address = NetworkValidator.parseAddress(res);
+        if (address == null) {
+            if (res == null || !res.contains(":")) {
+                Controller.writeTextArea("IP and port not match");
+            } else {
+                String[] parts = res.split(":", 2);
+                if (parts.length < 2 || !NetworkValidator.isValidIpv4(parts[0])) {
+                    Controller.writeTextArea("IP error, try again");
+                } else {
+                    Controller.writeTextArea("port error, try again");
+                }
+            }
             return;
         }
-
-        String[] t = res.split(":");
-        if (!t[0].matches("(\\b25[0-5]|\\b2[0-4][0-9]|\\b[01]?[0-9][0-9]?)(\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}")) {
-            Controller.writeTextArea("IP error, try again");
-            return;
-        }
-        if (!t[1].matches("[0-9][0-9][0-9][0-9]")) {
-            Controller.writeTextArea("port error, try again");
-            return;
-        }
-
-
-        Controller.writeTextArea("IP and port error, try again");
-        connect.joinHome(t[0], Integer.valueOf(t[1]));
+        connect.joinHome(address[0], Integer.parseInt(address[1]));
     }
 
     /**
@@ -220,53 +213,63 @@ public class Controller {
      */
     public static void netReceiveSolve(Object obj) {
         JSONObject jsonObject = (JSONObject) obj;
-        if ((int) jsonObject.get("type") == 1) {
-            // type 1表示开始新游戏
-            BoardStatus.getInstance().clearBoard();
-            Controller.writeTextArea("Start new Game");
-            Controller.writeTextArea("You is White Chess");
-            Controller.turnMe = false;
-            startGame = true;
-            BoardFrame.boardFrame.clearBoard();
-            BoardFrame.boardFrame.drawBoard();
-            BoardFrame.boardFrame.drawBoardChess();
-        } else if ((int) jsonObject.get("type") == 2) {
-            // type 2是每下一个棋子时发送的消息
-            int x = (int) jsonObject.get("X");
-            int y = (int) jsonObject.get("Y");
-            int res = BoardStatus.getInstance().addChess(x, y);
-            BoardFrame.boardFrame.clearBoard();
-            BoardFrame.boardFrame.drawBoard();
-            BoardFrame.boardFrame.drawBoardChess();
-            Controller.turnMe = true;
-            if (res == 1) {
-                JOptionPane.showMessageDialog(null, "Black chess is win");
-                writeTextArea("Black Chess is Winner");
-            } else if (res == -1) {
-                JOptionPane.showMessageDialog(null, "White chess is win");
-                writeTextArea("White Chess is Winner");
-            }
-            if (res == 0) {
+        int type = ((Number) jsonObject.get("type")).intValue();
+        switch (type) {
+            case 1:
+                // type 1表示开始新游戏
+                BoardStatus.getInstance().clearBoard();
+                Controller.writeTextArea("Start new Game");
+                Controller.writeTextArea("You is White Chess");
+                Controller.turnMe = false;
+                startGame = true;
+                BoardFrame.boardFrame.clearBoard();
+                BoardFrame.boardFrame.drawBoard();
+                BoardFrame.boardFrame.drawBoardChess();
+                break;
+            case 2:
+                // type 2是每下一个棋子时发送的消息
+                int x = ((Number) jsonObject.get("X")).intValue();
+                int y = ((Number) jsonObject.get("Y")).intValue();
+                int res = BoardStatus.getInstance().addChess(x, y);
+                BoardFrame.boardFrame.clearBoard();
+                BoardFrame.boardFrame.drawBoard();
+                BoardFrame.boardFrame.drawBoardChess();
+                Controller.turnMe = true;
+                if (res == 1) {
+                    JOptionPane.showMessageDialog(null, "Black chess is win");
+                    writeTextArea("Black Chess is Winner");
+                } else if (res == -1) {
+                    JOptionPane.showMessageDialog(null, "White chess is win");
+                    writeTextArea("White Chess is Winner");
+                }
+                if (res == 0) {
+                    whoPlayInfoUpdate();
+                }
+                break;
+            case 3:
+                //type 3是普通消息
+                String text = (String) jsonObject.get("meg");
+                Controller.writeTextArea("He: " + text);
+                break;
+            case 4:
+                //type 4 表示是撤回棋子
+                Controller.turnMe = !turnMe;
                 whoPlayInfoUpdate();
-            }
-        } else if ((int) jsonObject.get("type") == 3) {
-            //type 3是普通消息
-            String text = (String) jsonObject.get("meg");
-            Controller.writeTextArea("He: " + text);
-        } else if ((int) jsonObject.get("type") == 4) {
-            //type 4 表示是撤回棋子
-            Controller.turnMe = !turnMe;
-            whoPlayInfoUpdate();
-            BoardStatus.getInstance().withdraw();
-            BoardFrame.boardFrame.clearBoard();
-            BoardFrame.boardFrame.drawBoard();
-            BoardFrame.boardFrame.drawBoardChess();
-        } else if ((int) jsonObject.get("type") == 5) {
-            //type 5 表示对方已经退出房间
-            Controller.writeTextArea("opponent exit home");
-            connect.close();
-            connect = null;
-            mode = 0;
+                BoardStatus.getInstance().withdraw();
+                BoardFrame.boardFrame.clearBoard();
+                BoardFrame.boardFrame.drawBoard();
+                BoardFrame.boardFrame.drawBoardChess();
+                break;
+            case 5:
+                //type 5 表示对方已经退出房间
+                Controller.writeTextArea("opponent exit home");
+                connect.close();
+                connect = null;
+                mode = 0;
+                break;
+            default:
+                Controller.writeTextArea("Unknown message type: " + type);
+                break;
         }
     }
 

@@ -38,11 +38,23 @@ public class Connect {
      */
     public void close() {
         try {
+            if (this.outputStream != null) {
+                this.outputStream.close();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        try {
+            if (this.socket != null) {
+                this.socket.close();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        try {
             if (this.serverSocket != null) {
                 this.serverSocket.close();
             }
-            this.outputStream.close();
-            socket.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -73,22 +85,18 @@ public class Connect {
      * 创建新线程，用于接受消息
      */
     private void createLister() {
-
-        new Thread(new Runnable() {
-
-            @Override
-            public void run() {
-                ObjectInputStream objectInputStream = null;
-                try {
-                    objectInputStream = new ObjectInputStream(socket.getInputStream());
-                    while (true) {
-                        Object obj = objectInputStream.readObject();
-                        System.out.println("obj = " + obj);
-                        Controller.netReceiveSolve(obj);
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                } finally {
+        new Thread(() -> {
+            ObjectInputStream objectInputStream = null;
+            try {
+                objectInputStream = new ObjectInputStream(socket.getInputStream());
+                while (true) {
+                    Object obj = objectInputStream.readObject();
+                    Controller.netReceiveSolve(obj);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                if (objectInputStream != null) {
                     try {
                         objectInputStream.close();
                     } catch (Exception e) {

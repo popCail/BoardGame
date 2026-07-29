@@ -2,7 +2,10 @@ import org.json.simple.JSONObject;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 public class BoardFrame extends JFrame {
     //单例模式，只有一个下棋的窗口
@@ -49,25 +52,13 @@ public class BoardFrame extends JFrame {
         //增加重新开始的按键
         Button resetBut = new Button("Start New Game");
         resetBut.setBounds(550, 0, 100, 50);
-
-        resetBut.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                Controller.reStart();
-            }
-        });
+        resetBut.addActionListener(e -> Controller.reStart());
         super.add(resetBut);
 
         //增加悔棋按钮
         Button withdrawBut = new Button("Withdraw");
         withdrawBut.setBounds(550, 50, 100, 50);
-        withdrawBut.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                Controller.withdraw();
-
-            }
-        });
+        withdrawBut.addActionListener(e -> Controller.withdraw());
         super.add(withdrawBut);
 
         //增加消息框
@@ -84,79 +75,50 @@ public class BoardFrame extends JFrame {
         //增加创建房间按钮
         Button createHome = new Button("Create Home");
         createHome.setBounds(650, 0, 100, 50);
-        createHome.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                Controller.createHome();
-            }
-        });
+        createHome.addActionListener(e -> Controller.createHome());
         super.add(createHome);
 
         //增加加入房间按钮
         Button addHome = new Button("Join Home");
         addHome.setBounds(650, 50, 100, 50);
-        addHome.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                Controller.joinHome();
-            }
-        });
+        addHome.addActionListener(e -> Controller.joinHome());
         super.add(addHome);
 
         //增加退出房间按钮
         Button exitHome = new Button("Exit Home");
         exitHome.setBounds(650, 100, 100, 50);
-        exitHome.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                Controller.exitHome();
-            }
-        });
+        exitHome.addActionListener(e -> Controller.exitHome());
         super.add(exitHome);
 
         Button netStart = new Button("Net Start");
         netStart.setBounds(650, 150, 100, 50);
-        netStart.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                Controller.netStart();
-            }
-        });
+        netStart.addActionListener(e -> Controller.netStart());
         super.add(netStart);
 
         Button netWithdraw = new Button("Net Withdraw");
         netWithdraw.setBounds(650, 200, 100, 50);
-        netWithdraw.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                Controller.netWithdraw();
-            }
-        });
+        netWithdraw.addActionListener(e -> Controller.netWithdraw());
         super.add(netWithdraw);
 
-
-        //真加发送消息框
+        //增加发送消息框
         this.input = new TextField();
         input.setBounds(550, 400, 200, 40);
         input.setEditable(true);
         super.add(input);
         Button sendBut = new Button("Send");
         sendBut.setBounds(550, 450, 200, 40);
-        sendBut.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (Controller.connect == null) {
-                    Controller.writeTextArea("Not join home");
-                    return;
-                }
-                String text = input.getText();
-                Controller.writeTextArea("You: " + text);
-                input.setText("");
-                JSONObject jsonObject = new JSONObject();
-                jsonObject.put("type", 3);
-                jsonObject.put("meg", text);
-                Controller.connect.sendObject(jsonObject);
+        sendBut.addActionListener(e -> {
+            if (Controller.connect == null) {
+                Controller.writeTextArea("Not join home");
+                return;
             }
+            String text = input.getText();
+            Controller.writeTextArea("You: " + text);
+            input.setText("");
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("type", 3);
+            jsonObject.put("meg", text);
+            Controller.connect.sendObject(jsonObject);
         });
         super.add(sendBut);
     }
